@@ -1,6 +1,7 @@
 from selenium import webdriver
 
 from src.domain.model.Browser import Browser
+from src.pkg.settings import XpathSettings
 
 
 def verify_browser_contains_driver(func):
@@ -19,6 +20,7 @@ class SeleniumBrowser(Browser):
 
     def __init__(self):
         self.driver = None
+        self.xpaths = XpathSettings()
 
     @verify_browser_contains_driver
     def launch(self):
@@ -30,12 +32,24 @@ class SeleniumBrowser(Browser):
 
     @verify_browser_contains_driver
     def check_class_status(self) -> bool:
+        try:
+            element = self.driver.find_element("xpath", self.xpaths.wait_to_complete)
+            return True if element else False
+        except Exception:
+            return False
         return False
-
-    @verify_browser_contains_driver
-    def click_next_page(self) -> None:
-        pass
 
     @verify_browser_contains_driver
     def close(self) -> None:
         self.driver.quit()
+
+    @verify_browser_contains_driver
+    def fill_fild(self, campo: str, valor: str) -> None:
+        element = self.driver.find_element("xpath", campo)
+        element.clear()
+        element.send_keys(valor)
+
+    @verify_browser_contains_driver
+    def click_button(self, button: str) -> None:
+        element = self.driver.find_element("xpath", button)
+        element.click()

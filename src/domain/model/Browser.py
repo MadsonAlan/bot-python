@@ -30,8 +30,22 @@ class Browser:
         pass
 
     @abstractmethod
-    def click_next_page(self) -> None:
-        """Function to click the next page button"""
+    def fill_fild(self, campo: str, valor: str) -> None:
+        """Function to fill a field in a web application
+
+        Args:
+            campo (str): field to be filled
+            valor (str): value to fill the field
+        """
+        pass
+
+    @abstractmethod
+    def click_button(self, button: str) -> None:
+        """Function to click a button in a web application
+
+        Args:
+            button (str): button to be clicked
+        """
         pass
 
     @abstractmethod
