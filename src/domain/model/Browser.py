@@ -52,3 +52,13 @@ class Browser:
     def check_class_status(self) -> bool:
         """Function to check the status of a class in a web application"""
         pass
+
+    @abstractmethod
+    def play_video(self):
+        """Play the lesson video"""
+        pass
+
+    @abstractmethod
+    def next_lesson(self):
+        """Navigate to the next lesson"""
+        pass

@@ -1,14 +1,18 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from logging import error, info
 
 from src.domain.model.Browser import Browser
 from src.pkg.settings import XpathSettings
 
 
 def verify_browser_contains_driver(func):
-    def decorator(self, *args, **kwargs):
-        if self.driver is None:
+    def decorator(*args, **kwargs):
+        if args[0].driver is None:
+            error(
+                "Driver not initialized. Use BrowserFactory to create a browser instance."
+            )
             raise Exception(
                 "Driver not initialized. Use BrowserFactory to create a browser instance."
             )
@@ -49,9 +53,13 @@ class SeleniumBrowser(Browser):
     def check_class_status(self) -> bool:
         r = False
         try:
-            element = self.driver.find_element(By.XPATH, self.xpaths.wait_to_complete)
+            element = self.driver.find_element(
+                By.CLASS_NAME, self.xpaths.wait_to_complete
+            )
+            info(element)
             r = True if element else False
-        except:
+        except Exception as e:
+            error(e)
             pass
         return r
 
@@ -59,15 +67,43 @@ class SeleniumBrowser(Browser):
     def close(self) -> None:
         self.driver.quit()
 
-    @wait_element_present(60)
     @verify_browser_contains_driver
     def fill_fild(self, campo: str, valor: str) -> None:
-        element = self.driver.find_element(By.XPATH, campo)
-        element.clear()
-        element.send_keys(valor)
+        @wait_element_present(5)
+        def execute(s: SeleniumBrowser, c: str, v: str):
+            element = s.driver.find_element(By.XPATH, c)
+            element.clear()
+            element.send_keys(v)
 
-    @wait_element_present(60)
+        execute(self, campo, valor)
+
     @verify_browser_contains_driver
-    def click_button(self, button: str) -> None:
-        element = self.driver.find_element(By.XPATH, button)
-        element.click()
+    def click_button(self, button: str, by: str | None = None) -> None:
+        @wait_element_present(5)
+        def execute(s: SeleniumBrowser, c: str):
+            element = s.driver.find_element(by if by != None else By.XPATH, c)
+            info("Clicking in %s", c)
+            element.click()
+
+        execute(self, button)
+
+    @verify_browser_contains_driver
+    def play_video(self):
+        WebDriverWait(self.driver, timeout=60).until(
+            lambda driver: driver.find_element(
+                By.XPATH, self.xpaths.video
+            ).is_displayed()
+        )
+        element = self.driver.find_element(By.CSS_SELECTOR, self.xpaths.video)
+        self.driver.execute_script(
+            "var iframe = arguments[0]; iframe.contentWindow.postMessage(JSON.stringify({method: 'play'}), '*');",
+            element,
+        )
+        info(
+            "Vídeo em execução: %s",
+            not self.driver.execute_script("return arguments[0].paused;", element),
+        )
+
+    def next_lesson(self):
+        info("Changing for the next lesson")
+        self.click_button(self.xpaths.next_lesson_button)
