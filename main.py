@@ -7,7 +7,7 @@ from src.pkg.settings import settings, xpath_settings
 if __name__ == "__main__":
     browser_name = settings.browser
 
-    browser = BrowserFactory.create_browser(browser_name, occult=True)
+    browser = BrowserFactory.create_browser(browser_name, headless=settings.headless or True)
     try:
         abrir_curso(browser, settings, xpath_settings)
     except Exception as e:

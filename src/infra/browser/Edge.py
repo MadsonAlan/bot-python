@@ -10,10 +10,10 @@ class Edge(SeleniumBrowser):
     extends Browser class
     """
 
-    def __init__(self, occult=False):
+    def __init__(self, headless=False):
         super().__init__()
         self.options = webdriver.EdgeOptions()
         service = EdgeService(EdgeChromiumDriverManager().install())
         self.driver = webdriver.Edge(service=service, options=self.options)
-        if occult:
+        if headless:
             self.options.add_argument("--headless")

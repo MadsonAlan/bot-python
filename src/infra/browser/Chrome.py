@@ -10,10 +10,10 @@ class Chrome(SeleniumBrowser):
     extends Browser class
     """
 
-    def __init__(self, occult=False):
+    def __init__(self, headless=False):
         super().__init__()
         self.options = webdriver.ChromeOptions()
-        if occult:
+        if headless:
             self.options.add_argument("--headless")
         service = ChromeService(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=self.options)
