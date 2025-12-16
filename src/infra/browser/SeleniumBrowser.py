@@ -1,13 +1,15 @@
+import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from logging import error, info
-
 from src.domain.model.Browser import Browser
 from src.pkg.settings import XpathSettings
 
 
-def verify_browser_contains_driver(func):
+def _verify_browser_contains_driver(func):
     def decorator(*args, **kwargs):
         if args[0].driver is None:
             error(
@@ -21,7 +23,7 @@ def verify_browser_contains_driver(func):
     return decorator
 
 
-def wait_element_present(timeout):
+def _wait_element_present(timeout):
     def decorator(func):
         def wrapper(self, campo, *args, **kwargs):
             WebDriverWait(self.driver, timeout=timeout).until(
@@ -34,6 +36,18 @@ def wait_element_present(timeout):
     return decorator
 
 
+def _wait_element_clickable(timeout):
+    def decorator(func):
+        def wrapper(self, campo, *args, **kwargs):
+            WebDriverWait(self.driver, timeout=timeout).until(
+                EC.element_to_be_clickable((By.XPATH, campo))
+            )
+            return func(self, campo, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
 class SeleniumBrowser(Browser):
     driver: webdriver.Remote
 
@@ -41,15 +55,15 @@ class SeleniumBrowser(Browser):
         self.driver = None
         self.xpaths = XpathSettings()
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def launch(self):
         pass
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def go_to(self, url: str) -> None:
         self.driver.get(url)
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def check_class_status(self) -> bool:
         r = False
         try:
@@ -62,13 +76,14 @@ class SeleniumBrowser(Browser):
             pass
         return r
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def close(self) -> None:
+        self.driver.switch_to.default_content()
         self.driver.quit()
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def fill_fild(self, campo: str, valor: str) -> None:
-        @wait_element_present(5)
+        @_wait_element_present(5)
         def execute(s: SeleniumBrowser, c: str, v: str):
             element = s.driver.find_element(By.XPATH, c)
             element.clear()
@@ -76,9 +91,9 @@ class SeleniumBrowser(Browser):
 
         execute(self, campo, valor)
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def click_button(self, button: str, by: str | None = None) -> None:
-        @wait_element_present(5)
+        @_wait_element_clickable(5)
         def execute(s: SeleniumBrowser, c: str):
             element = s.driver.find_element(by if by != None else By.XPATH, c)
             info("Clicking in %s", c)
@@ -86,23 +101,19 @@ class SeleniumBrowser(Browser):
 
         execute(self, button)
 
-    @verify_browser_contains_driver
+    @_verify_browser_contains_driver
     def play_video(self):
-        WebDriverWait(self.driver, timeout=60).until(
-            lambda driver: driver.find_element(
-                By.CSS_SELECTOR, self.xpaths.video
-            ).is_displayed()
-        )
-        element = self.driver.find_element(By.CSS_SELECTOR, self.xpaths.video)
-        self.driver.execute_script(
-            "var iframe = arguments[0]; iframe.contentWindow.postMessage(JSON.stringify({method: 'play'}), '*');",
-            element,
-        )
-        info(
-            "Vídeo em execução: %s",
-            not self.driver.execute_script("return arguments[0].paused;", element),
-        )
+        cookies = self.driver.get_cookies()
+        csrf_token = self.driver.find_element(By.NAME, '_csrf').get_attribute('value')
+        requests.post(f"{self.driver.current_url}/completion", cookies={cookie['name']: cookie['value'] for cookie in cookies}, headers={'X-CSRF-TOKEN': csrf_token})
+        self.driver.refresh()
+        info("Video played")
 
     def next_lesson(self):
         info("Changing for the next lesson")
         self.click_button(self.xpaths.next_lesson_button)
+
+    @_verify_browser_contains_driver
+    def skip(self) -> None:
+        element = self.driver.find_element(By.CSS_SELECTOR, self.xpaths.video)
+        element.send_keys(Keys.ARROW_RIGHT)

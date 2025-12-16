@@ -4,7 +4,7 @@ from src.infra.browser import Chrome, Edge, Firefox
 
 class BrowserFactory:
     @staticmethod
-    def create_browser(browser: str) -> Browser:
+    def create_browser(browser: str, *args, **kwargs) -> Browser:
         browsers: dict[str, type[Browser]] = {
             "chrome": Chrome,
             "firefox": Firefox,
@@ -15,4 +15,4 @@ class BrowserFactory:
         if _browser is None:
             raise ValueError(f"Unsupported browser: {browser}")
 
-        return _browser()
+        return _browser(*args, **kwargs)

@@ -62,3 +62,12 @@ class Browser:
     def next_lesson(self):
         """Navigate to the next lesson"""
         pass
+
+    @abstractmethod
+    def skip(self) -> None:
+        """Press a key
+
+        Args:
+            string (str): key to press
+        """
+        pass

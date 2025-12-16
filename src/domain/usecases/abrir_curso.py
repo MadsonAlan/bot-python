@@ -16,7 +16,7 @@ def abrir_curso(browser: Browser, settings: Settings, xpaths: XpathSettings) -> 
     """
     realizar_login(browser, settings, xpaths)
     browser.go_to(settings.url_base + settings.course_url)
-    browser.click_button(xpaths.first_lesson_button)
+    # browser.click_button(xpaths.first_lesson_button)
     while True:
         if not browser.check_class_status():
             browser.play_video()
@@ -26,5 +26,7 @@ def abrir_curso(browser: Browser, settings: Settings, xpaths: XpathSettings) -> 
                 info("Lesson completed")
                 browser.next_lesson()
                 break
+            else:
+                browser.skip()
             sleep(1)
         sleep(1)
