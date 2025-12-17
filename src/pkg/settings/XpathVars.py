@@ -9,3 +9,4 @@ class XpathSettings:
     )
     complete_lesson_when_not_a_video: str = "/html/body/div[4]/div/div[1]/a"
     video: str = "iframe[src*='player.vimeo.com']"
+    btn_close = '//*[@id="pdv4close"]'

@@ -1,3 +1,4 @@
+import time
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -6,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from logging import error, info
 from src.domain.model.Browser import Browser
-from src.pkg.settings import XpathSettings
+from src.pkg.settings import XpathSettings, xpath_settings
 
 
 def _verify_browser_contains_driver(func):
@@ -92,14 +93,20 @@ class SeleniumBrowser(Browser):
         execute(self, campo, valor)
 
     @_verify_browser_contains_driver
-    def click_button(self, button: str, by: str | None = None) -> None:
+    def click_button(self, button: str, by: str | None = None, tryed: bool = False) -> None:
         @_wait_element_clickable(5)
-        def execute(s: SeleniumBrowser, c: str):
-            element = s.driver.find_element(by if by != None else By.XPATH, c)
-            info("Clicking in %s", c)
-            element.click()
+        def execute(s: SeleniumBrowser, c: str, t: bool):
+            try:
+                element = s.driver.find_element(by if by != None else By.XPATH, c)
+                info("Clicking in %s", c)
+                element.click()
+            except Exception as e:
+                if not t:
+                    self.click_button(xpath_settings.btn_close, By.XPATH, True)
+                    time.sleep(1)
+                    self.click_button(c, By.XPATH, True)
 
-        execute(self, button)
+        execute(self, button, tryed)
 
     @_verify_browser_contains_driver
     def play_video(self):
