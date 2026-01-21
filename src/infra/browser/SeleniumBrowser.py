@@ -227,7 +227,6 @@ class SeleniumBrowser(Browser):
             total += int(seconds.group(1))
 
         return total
-    
     @_verify_browser_contains_driver
     def play_video(self):
         driver = self.driver
@@ -284,6 +283,8 @@ class SeleniumBrowser(Browser):
 
         except Exception as e:
             error("Failed to play video: %s", e)
+            driver.switch_to.default_content()
+            self.skip_video()
 
         finally:
             # 4️⃣ Sempre voltar ao contexto principal
