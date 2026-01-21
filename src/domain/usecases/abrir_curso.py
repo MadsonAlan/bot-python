@@ -16,7 +16,9 @@ def abrir_curso(browser: Browser, settings: Settings, xpaths: XpathSettings) -> 
     """
     realizar_login(browser, settings, xpaths)
     browser.go_to(browser.load_last_url())
-    browser.click_button(xpaths.first_lesson_button)
+    if browser.load_last_url() == settings.url_base+settings.course_url:
+        browser.click_button(xpaths.first_lesson_button)
+    
     while True:
         if not browser.check_class_status():
             browser.play_video()

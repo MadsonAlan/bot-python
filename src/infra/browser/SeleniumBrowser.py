@@ -16,8 +16,10 @@ from selenium.common.exceptions import (
 import logging
 import time
 from pathlib import Path
-LAST_URL_FILE = Path("last_url.txt")
 
+BASE_DIR = Path(__file__).resolve().parent
+LAST_URL_FILE = BASE_DIR / "last_url.txt"
+LAST_URL_FILE.touch(exist_ok=True)
 
 def _verify_browser_contains_driver(func):
     def decorator(*args, **kwargs):

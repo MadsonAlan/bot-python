@@ -14,10 +14,9 @@ class Chrome(SeleniumBrowser):
         super().__init__()
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("--no-sandbox")
-        self.options.add_argument("--disable-dev-shm-usage")
-        # self.options.add_argument("--disable-gpu")
-        # self.options.add_argument("--disable-software-rasterizer")
+        self.options.add_argument("--headless=new")
         self.options.add_argument("--window-size=1920,1080")
+        self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--disable-background-networking")
         self.options.add_argument("--disable-sync")
         self.options.add_argument("--disable-notifications")
@@ -26,10 +25,8 @@ class Chrome(SeleniumBrowser):
         self.options.add_argument("--no-first-run")
         self.options.add_argument("--no-service-autorun")
         self.options.add_argument("--disable-gcm")
-        self.options.add_argument("--headless")
-        # if headless:
-        #     self.options.add_argument("--headless")
-        service = ChromeService(ChromeDriverManager().install())
+        self.options.binary_location = "/usr/bin/chromium"
+        service = ChromeService("/usr/bin/chromedriver")
         self.driver = webdriver.Chrome(service=service, options=self.options)
 
     def log_page_header(self) -> None:
