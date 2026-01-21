@@ -71,3 +71,16 @@ class Browser:
             string (str): key to press
         """
         pass
+
+    @abstractmethod
+    def log_page_header(self) -> None:
+        """Log current page header/title"""
+        pass
+    @abstractmethod
+    def save_last_url(self) -> None:
+        """Save the last URL visited"""
+        pass
+    @abstractmethod
+    def load_last_url(self) -> str:
+        """Load the last URL visited"""
+        pass

@@ -7,7 +7,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from logging import error, info
 from src.domain.model.Browser import Browser
-from src.pkg.settings import XpathSettings, xpath_settings
+from src.pkg.settings import XpathSettings, xpath_settings, settings
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    ElementClickInterceptedException,
+    TimeoutException
+)
+import logging
+import time
+from pathlib import Path
+LAST_URL_FILE = Path("last_url.txt")
 
 
 def _verify_browser_contains_driver(func):
@@ -91,23 +100,54 @@ class SeleniumBrowser(Browser):
             element.send_keys(v)
 
         execute(self, campo, valor)
+            
+    @_verify_browser_contains_driver
+    def accept_cookies_if_present(self):
+        try:
+            btn = WebDriverWait(self.driver, 3).until(
+                EC.element_to_be_clickable(
+                   (By.XPATH, "//button[contains(normalize-space(), 'OK')]")
+                )
+            )
+            logging.info("Accepting cookies banner")
+            btn.click()
+        except Exception:
+            pass
 
     @_verify_browser_contains_driver
-    def click_button(self, button: str, by: str | None = None, tryed: bool = False) -> None:
-        @_wait_element_clickable(5)
-        def execute(s: SeleniumBrowser, c: str, t: bool):
-            try:
-                element = s.driver.find_element(by if by != None else By.XPATH, c)
-                info("Clicking in %s", c)
-                element.click()
-            except Exception as e:
-                if not t:
-                    self.click_button(xpath_settings.btn_close, By.XPATH, True)
-                    time.sleep(1)
-                    self.click_button(c, By.XPATH, True)
+    def click_button(self, button: str, by: str | None = None, retries: int = 1) -> None:
+        locator = (by if by else By.XPATH, button)
 
-        execute(self, button, tryed)
+        try:
+            self.accept_cookies_if_present()
+            logging.info("Clicking in %s", button)
 
+            element = WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable(locator)
+            )
+            element.click()
+
+        except (StaleElementReferenceException,
+                ElementClickInterceptedException,
+                TimeoutException) as e:
+
+            logging.warning("Click failed (%s). Retrying...", type(e).__name__)
+
+            if retries > 0:
+                # tenta fechar modal se existir
+                try:
+                    close_btn = WebDriverWait(self.driver, 2).until(
+                        EC.element_to_be_clickable((By.XPATH, xpath_settings.btn_close))
+                    )
+                    close_btn.click()
+                    time.sleep(0.5)
+                except Exception:
+                    pass
+
+                self.click_button(button, by, retries - 1)
+            else:
+                logging.exception("Click permanently failed")
+                raise
     @_verify_browser_contains_driver
     def play_video(self):
         cookies = self.driver.get_cookies()
@@ -118,9 +158,39 @@ class SeleniumBrowser(Browser):
 
     def next_lesson(self):
         info("Changing for the next lesson")
+        element = WebDriverWait(self.driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, self.xpaths.next_lesson_button))
+        )
+
+        # garante que está visível
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block:'center'});",
+            element
+        )
+
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(element)
+        )
         self.click_button(self.xpaths.next_lesson_button)
 
     @_verify_browser_contains_driver
     def skip(self) -> None:
         element = self.driver.find_element(By.CSS_SELECTOR, self.xpaths.video)
         element.send_keys(Keys.ARROW_RIGHT)
+
+    @_verify_browser_contains_driver
+    def save_last_url(self) -> None:
+        try:
+            LAST_URL_FILE.write_text(self.driver.current_url, encoding="utf-8")
+            logging.info("Saved last URL: %s", self.driver.current_url)
+        except Exception as e:
+            logging.error("Could not save last URL: %s", e)
+
+    @_verify_browser_contains_driver
+    def load_last_url(self) -> str:
+        if LAST_URL_FILE.exists():
+            url = LAST_URL_FILE.read_text(encoding="utf-8").strip()
+            if url:
+                logging.info("Loaded last URL: %s", url)
+                return url
+        return settings.url_base + settings.course_url

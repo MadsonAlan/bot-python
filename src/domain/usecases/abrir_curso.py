@@ -15,18 +15,20 @@ def abrir_curso(browser: Browser, settings: Settings, xpaths: XpathSettings) -> 
         course_url (str): URL of the course page
     """
     realizar_login(browser, settings, xpaths)
-    browser.go_to(settings.url_base + settings.course_url)
+    browser.go_to(browser.load_last_url())
     browser.click_button(xpaths.first_lesson_button)
     while True:
         if not browser.check_class_status():
             browser.play_video()
         while True:
+            browser.log_page_header()
             info("Verifying lesson status")
             if browser.check_class_status():
                 info("Lesson completed")
+                browser.save_last_url()
                 browser.next_lesson()
                 break
             else:
                 browser.skip()
-            sleep(1)
-        sleep(1)
+            sleep(5)
+        sleep(5)
