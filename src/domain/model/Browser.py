@@ -54,8 +54,8 @@ class Browser:
         pass
 
     @abstractmethod
-    def play_video(self):
-        """Play the lesson video"""
+    def skip_video(self):
+        """skip the lesson video"""
         pass
 
     @abstractmethod
@@ -83,4 +83,24 @@ class Browser:
     @abstractmethod
     def load_last_url(self) -> str:
         """Load the last URL visited"""
+        pass
+    @abstractmethod
+    def get_current_lesson_duration(self) -> str:
+        """Load the duration of the current lesson"""
+        pass
+    @abstractmethod
+    def duration_to_seconds(self, text: str) -> int:
+        """Convert duration text to seconds
+
+        Args:
+            text (str): duration text (e.g., "5m 30s")
+
+        Returns:
+            int: duration in seconds
+        """
+        pass
+
+    @abstractmethod
+    def play_video(self):
+        """play the lesson video"""
         pass

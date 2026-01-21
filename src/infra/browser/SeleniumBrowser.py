@@ -16,6 +16,8 @@ from selenium.common.exceptions import (
 import logging
 import time
 from pathlib import Path
+from urllib.parse import urlparse
+import re
 
 BASE_DIR = Path(__file__).resolve().parent
 LAST_URL_FILE = BASE_DIR / "last_url.txt"
@@ -151,12 +153,12 @@ class SeleniumBrowser(Browser):
                 logging.exception("Click permanently failed")
                 raise
     @_verify_browser_contains_driver
-    def play_video(self):
+    def skip_video(self):
         cookies = self.driver.get_cookies()
         csrf_token = self.driver.find_element(By.NAME, '_csrf').get_attribute('value')
         requests.post(f"{self.driver.current_url}/completion", cookies={cookie['name']: cookie['value'] for cookie in cookies}, headers={'X-CSRF-TOKEN': csrf_token})
         self.driver.refresh()
-        info("Video played")
+        info("Video skiped")
 
     def next_lesson(self):
         info("Changing for the next lesson")
@@ -196,3 +198,86 @@ class SeleniumBrowser(Browser):
                 logging.info("Loaded last URL: %s", url)
                 return url
         return settings.url_base + settings.course_url
+    
+    @_verify_browser_contains_driver
+    def get_current_lesson_duration(self) -> str:
+        try:
+            xpath = (
+                "//a[contains(@class,'c-course-curriculum__lesson-container') "
+                f"and @href='{urlparse(self.driver.current_url).path}']"
+                "//span[contains(@class,'c-course-curriculum__lesson-duration')]"
+            )
+            span = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, xpath))
+            )
+            return span.text.strip() 
+
+        except Exception:
+            return "0m 0s"
+    
+    @_verify_browser_contains_driver
+    def duration_to_seconds(self, text: str) -> int:
+        minutes = re.search(r"(\d+)\s*m", text)
+        seconds = re.search(r"(\d+)\s*s", text)
+
+        total = 0
+        if minutes:
+            total += int(minutes.group(1)) * 60
+        if seconds:
+            total += int(seconds.group(1))
+
+        return total
+    
+    @_verify_browser_contains_driver
+    def play_video(self):
+        driver = self.driver
+        try:
+            # 1️⃣ Entrar no iframe (qualquer player conhecido)
+            WebDriverWait(driver, 15).until(
+                EC.frame_to_be_available_and_switch_to_it(
+                    (By.CSS_SELECTOR, "iframe[src*='vdocipher'], iframe[src*='player']")
+                )
+            )
+
+            # 2️⃣ Tentar botão Play por classes conhecidas
+            play_selectors = [
+                ".Button_module_button__61be5b9c",
+                ".PlayNPause",
+                ".overlay-play",
+                "[aria-label='Play']"
+            ]
+
+            for selector in play_selectors:
+                try:
+                    play_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                    )
+                    play_button.click()
+                    info("Play button clicked (%s)", selector)
+                    return
+                except TimeoutException:
+                    continue
+
+            # 3️⃣ Fallback: clicar no centro do player
+            info("Play button not found, clicking center of player")
+
+            driver.execute_script("""
+                const video = document.querySelector('video');
+                if (video) {
+                    video.muted = true;
+                    video.play();
+                }
+            """)
+            is_playing = driver.execute_script("""
+                const v = document.querySelector('video');
+                return v && !v.paused;
+            """)
+
+            info("Rodando: %s", is_playing)
+
+        except Exception as e:
+            error("Failed to play video: %s", e)
+
+        finally:
+            # 4️⃣ Sempre voltar ao contexto principal
+            driver.switch_to.default_content()

@@ -1,3 +1,4 @@
+from requests import options
 from src.infra.browser.SeleniumBrowser import SeleniumBrowser
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -13,20 +14,11 @@ class Chrome(SeleniumBrowser):
     def __init__(self, headless=False):
         super().__init__()
         self.options = webdriver.ChromeOptions()
-        self.options.add_argument("--no-sandbox")
-        self.options.add_argument("--headless=new")
-        self.options.add_argument("--window-size=1920,1080")
-        self.options.add_argument("--disable-dev-shm-usage")
-        self.options.add_argument("--disable-background-networking")
-        self.options.add_argument("--disable-sync")
-        self.options.add_argument("--disable-notifications")
-        self.options.add_argument("--disable-default-apps")
-        self.options.add_argument("--disable-extensions")
-        self.options.add_argument("--no-first-run")
-        self.options.add_argument("--no-service-autorun")
-        self.options.add_argument("--disable-gcm")
-        self.options.binary_location = "/usr/bin/chromium"
-        service = ChromeService("/usr/bin/chromedriver")
+        self.options.add_argument("--autoplay-policy=no-user-gesture-required")
+        self.options.add_argument("--mute-audio")
+        if headless:
+            self.options.add_argument("--headless")
+        service = ChromeService(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=self.options)
 
     def log_page_header(self) -> None:
