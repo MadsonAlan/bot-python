@@ -33,7 +33,7 @@ def abrir_curso(browser: Browser, settings: Settings, xpaths: XpathSettings) -> 
 
             if not browser.check_class_status():
 
-                if browser.get_current_lesson_duration() == "0m 0s":
+                if browser.get_current_lesson_duration() == "0m 0s" or lesson_attempts==2:
                     browser.skip_video()
 
                 info("Duration found: %s", browser.get_current_lesson_duration())
